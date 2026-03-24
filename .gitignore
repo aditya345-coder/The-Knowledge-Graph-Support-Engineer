@@ -205,3 +205,11 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+
+# My files
+documentation/
+data/
+qdrant-x86_64-pc-windows-msvc.zip
+requirement_specification.md
+qdrant_dummy.py
