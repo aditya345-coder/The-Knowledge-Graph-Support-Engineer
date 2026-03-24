@@ -5,7 +5,11 @@ from database.vector_store import VectorStore
 from langchain_qdrant import QdrantVectorStore
 from dotenv import load_dotenv
 
+from utils.logging_config import setup_logging
+
 load_dotenv()
+
+logger = setup_logging(__name__)
 
 
 class DocsLoader:
@@ -16,10 +20,10 @@ class DocsLoader:
 
     def clone_repo(self):
         if not os.path.exists(self.local_path):
-            print(f"Cloning {self.repo_url}...")
+            logger.info("Cloning docs repo", extra={"repo": self.repo_url})
             Repo.clone_from(self.repo_url, self.local_path)
         else:
-            print("Docs already exist locally.")
+            logger.info("Docs already exist locally")
 
     def load_and_split(self):
         # We define headers to split on so we keep context together
@@ -35,7 +39,7 @@ class DocsLoader:
         # Walking through the FastAPI docs folder
         docs_dir = os.path.join(self.local_path, "docs", "en", "docs")
         if not os.path.exists(docs_dir):
-            print(f"Directory {docs_dir} not found. Cloning doc repo first.")
+            logger.warning("Docs directory not found. Cloning repo.")
             self.clone_repo()
 
         for root, _, files in os.walk(docs_dir):
@@ -52,7 +56,7 @@ class DocsLoader:
         return all_chunks
 
     def upload_to_qdrant(self, chunks):
-        print(f"Uploading {len(chunks)} chunks to Qdrant...")
+        logger.info("Uploading chunks to Qdrant", extra={"count": len(chunks)})
 
         # Use the client directly for in-memory operation
         from qdrant_client.models import Distance, VectorParams, PointStruct
@@ -91,7 +95,7 @@ class DocsLoader:
                 collection_name=self.vector_store.collection_name, points=batch
             )
 
-        print("Success! Documentation is now indexed.")
+        logger.info("Documentation indexed successfully")
 
 
 if __name__ == "__main__":

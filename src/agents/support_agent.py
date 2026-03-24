@@ -1,5 +1,7 @@
 import os
 from typing import Annotated, TypedDict, List
+
+from utils.logging_config import setup_logging
 from langgraph.graph import StateGraph, END
 from dotenv import load_dotenv
 
@@ -7,6 +9,9 @@ from database.hybrid_retriever import HybridRetriever
 from agents.llm_gateway import LLMGateway
 
 load_dotenv()
+
+logger = setup_logging(__name__)
+
 
 class AgentState(TypedDict):
     query: str
@@ -17,68 +22,76 @@ class AgentState(TypedDict):
     is_hallucination: bool
     iteration: int
 
+
 class SupportAgent:
     def __init__(self):
         self.retriever = HybridRetriever()
         self.llm = LLMGateway()
         self.workflow = StateGraph(AgentState)
-        
+
         # Define nodes
         self.workflow.add_node("analyze", self.analyze_query)
         self.workflow.add_node("retrieve", self.retrieve_context)
         self.workflow.add_node("generate", self.generate_answer)
         self.workflow.add_node("verify", self.verify_answer)
-        
+
         # Define flow
         self.workflow.set_entry_point("analyze")
         self.workflow.add_edge("analyze", "retrieve")
         self.workflow.add_edge("retrieve", "generate")
         self.workflow.add_edge("generate", "verify")
-        
+
         # Conditional Edge (The Loop)
         self.workflow.add_conditional_edges(
-            "verify",
-            self.should_continue,
-            {
-                "retry": "retrieve",
-                "end": END
-            }
+            "verify", self.should_continue, {"retry": "retrieve", "end": END}
         )
-        
+
         self.app = self.workflow.compile()
 
     def analyze_query(self, state: AgentState):
         prompt = f"Identify the specific FastAPI feature in this query: '{state['query']}'. Return only the feature name or 'None'."
         res = self.llm.chat([{"role": "user", "content": prompt}])
-        return {"detected_feature": res.choices[0].message.content.strip(), "iteration": 0}
+        detected_feature = self.llm.get_message_text(res)
+        logger.info("Detected feature", extra={"feature": detected_feature})
+        return {"detected_feature": detected_feature, "iteration": 0}
 
     def retrieve_context(self, state: AgentState):
-        context = self.retriever.retrieve_all(state['query'], state['detected_feature'])
+        context = self.retriever.retrieve_all(state["query"], state["detected_feature"])
+        logger.info(
+            "Retrieved context",
+            extra={
+                "docs_count": len(context.get("official_docs", [])),
+                "issues_count": len(context.get("known_issues", [])),
+            },
+        )
         return {
-            "documents": context['official_docs'], 
-            "github_issues": context['known_issues'],
-            "iteration": state.get("iteration", 0) + 1
+            "documents": context["official_docs"],
+            "github_issues": context["known_issues"],
+            "iteration": state.get("iteration", 0) + 1,
         }
 
     def generate_answer(self, state: AgentState):
         context_str = f"DOCS: {state['documents']}\nISSUES: {state['github_issues']}"
         prompt = f"Use this context to solve: {state['query']}\nContext: {context_str}\nProvide a technical answer."
         res = self.llm.chat([{"role": "user", "content": prompt}])
-        return {"response": res.choices[0].message.content}
+        logger.info("Generated response")
+        return {"response": self.llm.get_message_text(res)}
 
     def verify_answer(self, state: AgentState):
         """The Critic node: checks if the answer is grounded in the provided documents."""
         context_str = f"DOCS: {state['documents']}\nISSUES: {state['github_issues']}"
         prompt = f"""
         Analyze if the following answer is grounded in the context provided.
-        Answer: {state['response']}
+        Answer: {state["response"]}
         Context: {context_str}
         
         Does the answer contain information NOT present in the context? 
         Return ONLY 'True' if it is a hallucination, or 'False' if it is grounded.
         """
         res = self.llm.chat([{"role": "user", "content": prompt}])
-        is_hallu = "true" in res.choices[0].message.content.lower()
+        response_text = self.llm.get_message_text(res)
+        is_hallu = "true" in response_text.lower()
+        logger.info("Verification result", extra={"is_hallucination": is_hallu})
         return {"is_hallucination": is_hallu}
 
     def should_continue(self, state: AgentState):

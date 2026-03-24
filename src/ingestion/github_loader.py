@@ -5,7 +5,12 @@ from database.graph_store import GraphStore
 from agents.llm_gateway import LLMGateway
 from dotenv import load_dotenv
 
+from utils.logging_config import setup_logging
+
 load_dotenv()
+
+logger = setup_logging(__name__)
+
 
 class GitHubGraphLoader:
     def __init__(self):
@@ -25,7 +30,7 @@ class GitHubGraphLoader:
         try:
             return json.loads(json_content)
         except json.JSONDecodeError:
-            print("Failed to parse LLM JSON response.")
+            logger.warning("Failed to parse LLM JSON response")
             return {"features": [], "versions": [], "relationships": []}
 
     def save_to_neo4j(self, issue_id, graph_data):
@@ -37,16 +42,17 @@ class GitHubGraphLoader:
                 MERGE (f:Feature {name: feat})
                 MERGE (i)-[:AFFECTS]->(f))
             """
-            session.run(query, id=issue_id, features=graph_data.get('features', []))
+            session.run(query, id=issue_id, features=graph_data.get("features", []))
 
     def run(self):
         # Fetching last 20 closed issues to build the graph
-        issues = self.repo.get_issues(state='closed')[:20]
+        issues = self.repo.get_issues(state="closed")[:20]
         for issue in issues:
-            print(f"Processing Issue #{issue.number}...")
+            logger.info("Processing issue", extra={"issue": issue.number})
             data = self.extract_graph_data(issue.body)
             self.save_to_neo4j(issue.number, data)
-        print("Graph populated!")
+        logger.info("Graph populated")
+
 
 if __name__ == "__main__":
     loader = GitHubGraphLoader()

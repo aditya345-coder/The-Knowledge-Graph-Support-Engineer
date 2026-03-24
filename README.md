@@ -45,6 +45,12 @@ Create a `.env` file in the root directory and populate it with your keys:
 LLM_MODEL=groq/llama-3.1-8b-instant
 GROQ_API_KEY=your_groq_key
 
+# Logging
+LOG_LEVEL=INFO
+# Local only: write logs to file (stdout always enabled)
+LOG_TO_FILE=true
+LOG_FILE=logs/app.log
+
 # Qdrant
 QDRANT_URL=your_qdrant_url
 QDRANT_API_KEY=your_qdrant_api_key
@@ -66,8 +72,8 @@ TARGET_REPO=tiangolo/fastapi
 ### Phase 1: Ingest Data (Do this once)
 First, populate your databases with the documentation and GitHub issues:
 ```bash
-# Ingest Documentation into Qdrant
-c
+# Ingest Documentation into Qdrant (creates fastapi_docs collection)
+python src/ingestion/docs_loader.py
 
 # Ingest GitHub Issues into Neo4j
 python src/ingestion/github_loader.py
@@ -84,6 +90,9 @@ You need to run both the backend API and the frontend UI:
     ```bash
     streamlit run src/ui.py
     ```
+
+Notes:
+- If the API returns `Collection fastapi_docs not found`, run the docs ingestion step above.
 
 ---
 

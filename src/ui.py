@@ -1,8 +1,12 @@
 import streamlit as st
 import requests
 
+from utils.logging_config import setup_logging
+
 st.set_page_config(page_title="Omni-Support AI", layout="wide")
 st.title("🤖 FastAPI Support Engineer (GraphRAG)")
+
+logger = setup_logging(__name__)
 
 # Sidebar for "Under the Hood" details
 with st.sidebar:
@@ -19,13 +23,17 @@ if user_input:
         # Calling our FastAPI backend
         try:
             api_response = requests.post(
-                "http://localhost:8000/v1/solve-ticket", json={"user_query": user_input}
+                "http://127.0.0.1:8000/v1/solve-ticket", json={"user_query": user_input}
             )
             try:
                 response = api_response.json()
             except ValueError:
+                logger.warning(
+                    "Non-JSON API response", extra={"status": api_response.status_code}
+                )
                 response = {"status": "error", "message": api_response.text}
         except requests.exceptions.RequestException as exc:
+            logger.error("API connection failed", exc_info=exc)
             response = {"status": "error", "message": f"API connection failed: {exc}"}
 
         if response.get("status") == "success":
