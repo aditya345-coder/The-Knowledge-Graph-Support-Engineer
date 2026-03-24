@@ -1,14 +1,13 @@
+# src/ingestion/docs_loader.py
 import os
 from git import Repo
 from langchain_text_splitters import MarkdownHeaderTextSplitter
 from database.vector_store import VectorStore
-from langchain_qdrant import QdrantVectorStore
+from qdrant_client.models import Distance, VectorParams, PointStruct
 from dotenv import load_dotenv
-
 from utils.logging_config import setup_logging
 
 load_dotenv()
-
 logger = setup_logging(__name__)
 
 
@@ -18,29 +17,32 @@ class DocsLoader:
         self.local_path = "./data/raw_docs/fastapi"
         self.vector_store = VectorStore()
 
-    def clone_repo(self):
-        if not os.path.exists(self.local_path):
-            logger.info("Cloning docs repo", extra={"repo": self.repo_url})
-            Repo.clone_from(self.repo_url, self.local_path)
-        else:
-            logger.info("Docs already exist locally")
+    def identify_feature(self, text: str) -> str:
+        """Simple keyword-based detector to bridge docs to graph features."""
+        text = text.lower()
+        if "backgroundtask" in text or "background tasks" in text:
+            return "BackgroundTasks"
+        if "dependency" in text or "depends(" in text:
+            return "Dependency Injection"
+        if "security" in text or "oauth" in text or "bearer" in text:
+            return "Security"
+        if "orm" in text or "sql" in text or "sqlalchemy" in text:
+            return "SQLAlchemy/ORM"
+        return "General"
+
+    def resolve_neo4j_id(self, feature_name: str) -> str:
+        """Maps a feature name to its Neo4j identifier."""
+        return feature_name
 
     def load_and_split(self):
-        # We define headers to split on so we keep context together
         headers_to_split_on = [
             ("#", "Header 1"),
             ("##", "Header 2"),
             ("###", "Header 3"),
         ]
-
         splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers_to_split_on)
         all_chunks = []
-
-        # Walking through the FastAPI docs folder
         docs_dir = os.path.join(self.local_path, "docs", "en", "docs")
-        if not os.path.exists(docs_dir):
-            logger.warning("Docs directory not found. Cloning repo.")
-            self.clone_repo()
 
         for root, _, files in os.walk(docs_dir):
             for file in files:
@@ -48,20 +50,17 @@ class DocsLoader:
                     with open(os.path.join(root, file), "r", encoding="utf-8") as f:
                         content = f.read()
                         chunks = splitter.split_text(content)
-                        # Add metadata about the file source
                         for chunk in chunks:
+                            feature_name = self.identify_feature(chunk.page_content)
+                            neo4j_id = self.resolve_neo4j_id(feature_name)
                             chunk.metadata["source"] = file
+                            chunk.metadata["feature_name"] = feature_name
+                            chunk.metadata["feature"] = feature_name
+                            chunk.metadata["neo4j_id"] = neo4j_id
                         all_chunks.extend(chunks)
-
         return all_chunks
 
     def upload_to_qdrant(self, chunks):
-        logger.info("Uploading chunks to Qdrant", extra={"count": len(chunks)})
-
-        # Use the client directly for in-memory operation
-        from qdrant_client.models import Distance, VectorParams, PointStruct
-
-        # Create collection if it doesn't exist
         try:
             self.vector_store.client.get_collection(self.vector_store.collection_name)
         except Exception:
@@ -70,7 +69,6 @@ class DocsLoader:
                 vectors_config=VectorParams(size=384, distance=Distance.COSINE),
             )
 
-        # Convert chunks to points
         points = []
         for i, chunk in enumerate(chunks):
             vector = self.vector_store.embeddings.embed_documents([chunk.page_content])[
@@ -83,19 +81,19 @@ class DocsLoader:
                     payload={
                         "text": chunk.page_content,
                         "source": chunk.metadata.get("source", "unknown"),
+                        "feature_name": chunk.metadata.get("feature_name", "General"),
+                        "feature": chunk.metadata.get("feature", "General"),
+                        "neo4j_id": chunk.metadata.get(
+                            "neo4j_id",
+                            chunk.metadata.get("feature_name", "General"),
+                        ),
                     },
                 )
             )
-
-        # Upload points in batches
-        batch_size = 100
-        for i in range(0, len(points), batch_size):
-            batch = points[i : i + batch_size]
-            self.vector_store.client.upsert(
-                collection_name=self.vector_store.collection_name, points=batch
-            )
-
-        logger.info("Documentation indexed successfully")
+        self.vector_store.client.upsert(
+            collection_name=self.vector_store.collection_name, points=points
+        )
+        logger.info("Documentation indexed with feature tags")
 
 
 if __name__ == "__main__":

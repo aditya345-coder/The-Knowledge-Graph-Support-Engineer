@@ -1,3 +1,5 @@
+import os
+import re
 import streamlit as st
 import requests
 
@@ -7,6 +9,23 @@ st.set_page_config(page_title="Omni-Support AI", layout="wide")
 st.title("🤖 FastAPI Support Engineer (GraphRAG)")
 
 logger = setup_logging(__name__)
+
+
+def format_citations(text: str) -> str:
+    repo = os.getenv("TARGET_REPO")
+
+    def replace_tag(match: re.Match[str]) -> str:
+        source = match.group(1).strip()
+        if source.startswith("Issue #"):
+            issue_id = source.replace("Issue #", "").strip()
+            if repo and issue_id.isdigit():
+                url = f"https://github.com/{repo}/issues/{issue_id}"
+                return f"[Source: Issue #{issue_id}]({url})"
+            return f"**[Source: Issue #{issue_id}]**"
+        return f"**[Source: {source}]**"
+
+    return re.sub(r"\[Source: ([^\]]+)\]", replace_tag, text)
+
 
 # Sidebar for "Under the Hood" details
 with st.sidebar:
@@ -38,7 +57,7 @@ if user_input:
 
         if response.get("status") == "success":
             with st.chat_message("assistant"):
-                st.markdown(response["answer"])
+                st.markdown(format_citations(response["answer"]))
 
             # Show the reasoning in the sidebar
             metadata = response.get("metadata")

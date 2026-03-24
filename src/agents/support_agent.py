@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 from database.hybrid_retriever import HybridRetriever
 from agents.llm_gateway import LLMGateway
 
+from langgraph.pregel import Pregel
+
 load_dotenv()
 
 logger = setup_logging(__name__)
@@ -48,6 +50,8 @@ class SupportAgent:
 
         self.app = self.workflow.compile()
 
+        self.app.name = "FastAPI-Support-Agent"
+
     def analyze_query(self, state: AgentState):
         prompt = f"Identify the specific FastAPI feature in this query: '{state['query']}'. Return only the feature name or 'None'."
         res = self.llm.chat([{"role": "user", "content": prompt}])
@@ -57,29 +61,62 @@ class SupportAgent:
 
     def retrieve_context(self, state: AgentState):
         context = self.retriever.retrieve_all(state["query"], state["detected_feature"])
+        raw_docs = context.get("official_docs", [])
+        formatted_docs = []
+        for doc in raw_docs:
+            if isinstance(doc, dict):
+                source = doc.get("source", "unknown")
+                text = doc.get("text", "")
+                formatted_docs.append(f"[Source: {source}] | Content: {text}")
+            else:
+                formatted_docs.append(f"[Source: unknown] | Content: {doc}")
+
+        raw_issues = context.get("known_issues", [])
+        formatted_issues = []
+        for issue in raw_issues:
+            if isinstance(issue, str) and "Issue #" in issue and ":" in issue:
+                prefix, title = issue.split(":", 1)
+                issue_id = prefix.replace("Issue #", "").strip()
+                formatted_issues.append(
+                    f"[Source: Issue #{issue_id}] | Content: {title.strip()}"
+                )
+            else:
+                formatted_issues.append(f"[Source: Issue #unknown] | Content: {issue}")
         logger.info(
             "Retrieved context",
             extra={
-                "docs_count": len(context.get("official_docs", [])),
-                "issues_count": len(context.get("known_issues", [])),
+                "docs_count": len(formatted_docs),
+                "issues_count": len(formatted_issues),
             },
         )
         return {
-            "documents": context["official_docs"],
-            "github_issues": context["known_issues"],
+            "documents": formatted_docs,
+            "github_issues": formatted_issues,
             "iteration": state.get("iteration", 0) + 1,
         }
 
     def generate_answer(self, state: AgentState):
-        context_str = f"DOCS: {state['documents']}\nISSUES: {state['github_issues']}"
-        prompt = f"Use this context to solve: {state['query']}\nContext: {context_str}\nProvide a technical answer."
+        docs_context = "\n".join(state["documents"])
+        issues_context = "\n".join(state["github_issues"])
+        context_str = f"DOCS:\n{docs_context}\nISSUES:\n{issues_context}"
+        prompt = (
+            "You are a technical support assistant. For every factual claim, you must include the "
+            "source tag provided in the context at the end of the sentence (e.g., [Source: docs.md]). "
+            "If you do not have a source, do not state the fact. "
+            "Use [Source: <filename>] for documents and [Source: Issue #<id>] for GitHub issues.\n"
+            f"User question: {state['query']}\n"
+            f"Context:\n{context_str}\n"
+            "Provide a technical answer with citations."
+        )
         res = self.llm.chat([{"role": "user", "content": prompt}])
         logger.info("Generated response")
         return {"response": self.llm.get_message_text(res)}
 
     def verify_answer(self, state: AgentState):
         """The Critic node: checks if the answer is grounded in the provided documents."""
-        context_str = f"DOCS: {state['documents']}\nISSUES: {state['github_issues']}"
+        docs_context = "\n".join(state["documents"])
+        issues_context = "\n".join(state["github_issues"])
+        context_str = f"DOCS:\n{docs_context}\nISSUES:\n{issues_context}"
         prompt = f"""
         Analyze if the following answer is grounded in the context provided.
         Answer: {state["response"]}

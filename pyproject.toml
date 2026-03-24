@@ -11,16 +11,26 @@ dependencies = [
     "langchain>=1.2.13",
     "langchain-community>=0.4.1",
     "langchain-core>=1.2.20",
+    "langchain-openai>=1.1.11",
     "langchain-qdrant>=1.1.0",
     "langchain-text-splitters>=1.1.1",
     "langgraph>=1.1.3",
+    "langsmith>=0.7.22",
     "litellm>=1.82.5",
     "neo4j>=6.1.0",
     "pygithub>=2.8.1",
     "python-dotenv>=1.2.2",
     "qdrant-client>=1.17.1",
+    "ragas>=0.4.3",
     "requests>=2.32.3",
     "streamlit>=1.42.1",
     "unstructured[md]>=0.21.5",
     "uvicorn>=0.42.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "mypy>=1.16.1",
+    "pytest>=8.3.5",
+    "ruff>=0.11.2",
 ]

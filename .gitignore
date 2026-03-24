@@ -213,3 +213,6 @@ data/
 qdrant-x86_64-pc-windows-msvc.zip
 requirement_specification.md
 qdrant_dummy.py
+logs/
+opencode.json
+session-ses_2dfd.md

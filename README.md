@@ -1,6 +1,6 @@
 # Omni-Support GraphRAG: FastAPI Support Engineer 🤖
 
-An agentic AI system designed to act as a world-class support engineer for FastAPI. It uses a **Hybrid GraphRAG** approach, combining semantic documentation search (Vector DB) with historical issue/bug relationship mapping (Graph DB) to provide grounded, expert-level answers.
+An agentic AI system designed to act as a support engineer for FastAPI. It uses a **Hybrid GraphRAG** approach, combining semantic documentation search (Qdrant) with historical issue/bug relationship mapping (Neo4j) to provide grounded, cited answers.
 
 ---
 
@@ -9,15 +9,15 @@ An agentic AI system designed to act as a world-class support engineer for FastA
 The system follows a multi-layered agentic architecture built with **LangGraph**:
 
 1.  **The Ingestion Pipeline (ETL):**
-    *   **Vector DB (Qdrant):** Stores embeddings of the official FastAPI documentation.
-    *   **Graph DB (Neo4j):** Stores a knowledge graph of GitHub issues, linked features, and version history.
+    *   **Vector DB (Qdrant):** Stores embeddings of the FastAPI docs with feature tags and a `neo4j_id` bridge.
+    *   **Graph DB (Neo4j):** Stores `Issue` and `Feature` nodes linked by `AFFECTS` relationships.
 2.  **The Agentic Core:**
-    *   **Router:** Analyzes the user query to identify which FastAPI features are involved.
-    *   **Hybrid Retriever:** Simultaneously queries Qdrant (for "How-to") and Neo4j (for "Known Bugs").
-    *   **The Critic Node:** A specialized verification step that checks for hallucinations and ensures the answer is grounded in the retrieved data.
+    *   **Analyzer:** Identifies the FastAPI feature in the user query.
+    *   **Hybrid Retriever:** Queries Qdrant and, when possible, Neo4j using the doc feature bridge or detected feature.
+    *   **Critic Node:** Verifies grounding and retries retrieval up to 3 times if hallucination is detected.
 3.  **Interaction Layer:**
     *   **FastAPI Backend:** Orchestrates the LangGraph state machine.
-    *   **Streamlit UI:** Provides a premium, chat-based interface for the user.
+    *   **Streamlit UI:** Chat interface that formats citations and links GitHub issues.
 
 ---
 
@@ -25,9 +25,10 @@ The system follows a multi-layered agentic architecture built with **LangGraph**
 
 ### 1. Prerequisites
 *   Python 3.13+
-*   [Qdrant](https://qdrant.tech/) Account (Cloud or Local)
-*   [Neo4j](https://neo4j.com/cloud/aura24/) Aura Account (Free Tier works great)
-*   [Groq](https://console.groq.com/) API Key (for high-speed Llama 3 inference)
+*   [Neo4j](https://neo4j.com/cloud/aura24/) Aura Account (required)
+*   [Qdrant](https://qdrant.tech/) Account (optional; in-memory fallback exists)
+*   [Groq](https://console.groq.com/) API Key (default model via LiteLLM)
+*   OpenAI API Key (optional, only for evaluation via RAGAS)
 
 ### 2. Clone and Install
 ```bash
@@ -39,7 +40,7 @@ pip install -e .
 ```
 
 ### 3. Environment Configuration
-Create a `.env` file in the root directory and populate it with your keys:
+Create a `.env` file in the root directory (see `.env.example`) and populate it with your keys:
 ```env
 # LLM
 LLM_MODEL=groq/llama-3.1-8b-instant
@@ -63,6 +64,9 @@ NEO4J_PASSWORD=your_password
 # GitHub (for ingestion)
 GITHUB_TOKEN=your_github_pat
 TARGET_REPO=tiangolo/fastapi
+
+# Evaluation (optional)
+OPENAI_API_KEY=your_openai_key
 ```
 
 ---
@@ -75,7 +79,7 @@ First, populate your databases with the documentation and GitHub issues:
 # Ingest Documentation into Qdrant (creates fastapi_docs collection)
 python src/ingestion/docs_loader.py
 
-# Ingest GitHub Issues into Neo4j
+# Ingest GitHub Issues into Neo4j (last 20 closed issues)
 python src/ingestion/github_loader.py
 ```
 
@@ -93,6 +97,12 @@ You need to run both the backend API and the frontend UI:
 
 Notes:
 - If the API returns `Collection fastapi_docs not found`, run the docs ingestion step above.
+- Neo4j configuration is required; the app will error if it is missing.
+
+### Phase 3: (Optional) Run Evaluation
+```bash
+python src/evaluation/evaluate.py
+```
 
 ---
 
@@ -102,6 +112,7 @@ Notes:
 ---
 
 ## 🛡️ Key Features
-*   **Zero-Hallucination Design:** The LangGraph "Critic" node loops back if the answer isn't grounded.
-*   **LiteLLM Integration:** Swap between Llama 3, GPT-4, or Claude with a single `.env` change.
-*   **Relational Context:** Knows not just *how* a feature works, but *what bugs* are currently affecting it.
+*   **Grounded Answers With Citations:** Responses require `[Source: ...]` tags and the UI formats links to GitHub issues.
+*   **Hybrid Retrieval:** Qdrant doc chunks plus Neo4j issues, bridged by `neo4j_id` or detected feature.
+*   **Verification Loop:** The LangGraph critic retries retrieval up to 3 times when hallucination is detected.
+*   **Evaluation Harness:** RAGAS-based evaluation using `src/evaluation/golden_dataset.json`.

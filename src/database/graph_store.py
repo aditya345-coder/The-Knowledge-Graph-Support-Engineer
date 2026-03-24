@@ -31,19 +31,21 @@ class GraphStore:
     def close(self):
         self.driver.close()
 
-    def get_related_issues(self, feature_name: str, limit: int = 5):
+    def get_related_issues(self, neo4j_id: str, limit: int = 5):
         """Finds issues affecting a specific feature."""
         query = """
-        MATCH (f:Feature {name: $name})<-[:AFFECTS]-(i:Issue)
+        MATCH (f:Feature)
+        WHERE f.neo4j_id = $neo4j_id OR f.name = $neo4j_id
+        MATCH (f)<-[:AFFECTS]-(i:Issue)
         RETURN i.id AS issue_id, i.title AS title LIMIT $limit
         """
         with self.driver.session() as session:
-            result = session.run(query, name=feature_name, limit=limit)
+            result = session.run(query, neo4j_id=neo4j_id, limit=limit)
             issues = [
                 f"Issue #{record['issue_id']}: {record['title']}" for record in result
             ]
             logger.info(
                 "Related issues fetched",
-                extra={"feature": feature_name, "count": len(issues)},
+                extra={"feature": neo4j_id, "count": len(issues)},
             )
             return issues

@@ -5,6 +5,9 @@ from typing import Any, cast
 from agents.support_agent import SupportAgent
 from utils.logging_config import setup_logging
 
+import langsmith
+from langsmith import traceable
+
 logger = setup_logging(__name__)
 app = FastAPI(title="Omni-Support GraphRAG API")
 

@@ -50,4 +50,21 @@ class VectorStore:
             logger.debug("Qdrant query_points used")
             raw_points = getattr(response, "points", [])
             points = list(cast(Iterable[Any], raw_points))
-        return [res.payload.get("text", "") for res in points if res.payload]
+        results = []
+        for res in points:
+            payload = getattr(res, "payload", None) or {}
+            results.append(
+                {
+                    "text": payload.get("text", ""),
+                    "source": payload.get("source", "unknown"),
+                    "feature_name": payload.get("feature_name")
+                    or payload.get("feature")
+                    or "General",
+                    "neo4j_id": payload.get("neo4j_id")
+                    or payload.get("feature_name")
+                    or payload.get("feature")
+                    or "General",
+                    "score": getattr(res, "score", None),
+                }
+            )
+        return results

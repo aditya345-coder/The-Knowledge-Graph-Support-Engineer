@@ -1,0 +1,10 @@
+[
+    {
+        "user_query": "How do I use BackgroundTasks in FastAPI?",
+        "ground_truth": "You can use the BackgroundTasks class to define tasks to run after the response is sent. Import it from fastapi and add it as a parameter to your path operation function."
+    },
+    {
+        "user_query": "Is there a known bug with OAuth2 scopes in v0.110?",
+        "ground_truth": "Yes, issue #1234 mentions a discrepancy in how OAuth2 scopes are evaluated when using Dependency Injection."
+    }
+]
