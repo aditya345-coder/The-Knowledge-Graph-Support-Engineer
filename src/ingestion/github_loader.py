@@ -37,12 +37,13 @@ class GitHubGraphLoader:
         with self.graph_store.driver.session() as session:
             # Cypher query to create nodes and links
             query = """
-            MERGE (i:Issue {id: $id})
+            MERGE (i:Issue {neo4j_id: $id})
+            SET i.title = $title
             FOREACH (feat IN $features | 
                 MERGE (f:Feature {name: feat})
                 MERGE (i)-[:AFFECTS]->(f))
             """
-            session.run(query, id=issue_id, features=graph_data.get("features", []))
+            session.run(query, id=str(issue_id), title=graph_data.get("title", "No Title"), features=graph_data.get('features', []))
 
     def run(self):
         # Fetching last 20 closed issues to build the graph
