@@ -37,37 +37,9 @@ class LLMGateway:
         if hasattr(response, "content"):
             return str(response.content).strip()
         return ""
-        # litellm responses can vary in structure, so we add some robustness here
-        # response_dict: dict[str, Any] = {}
-        # if isinstance(response, dict):
-        #     response_dict = response
-        # elif hasattr(response, "model_dump"):
-        #     response_dict = response.model_dump()
-        # elif hasattr(response, "dict"):
-        #     response_dict = response.dict()
-        
-        # choices = response_dict.get("choices") or []
-        # if not choices:
-        #     return ""
-        # message = choices[0].get("message") or {}
-        # return (message.get("content") or "").strip()
 
     def extract_json(self, prompt: str):
         """Helper to ensure we get cleaner JSON responses."""
-        # messages = [
-        #     {
-        #         "role": "system",
-        #         "content": "You are a precise data extractor. Return only valid JSON.",
-        #     },
-        #     {"role": "user", "content": prompt},
-        # ]
-        # response = self.chat(messages)
-        # content = self.get_message_text(response)
-        # if content.startswith("```json"):
-        #     content = content.replace("```json", "").replace("```", "").strip()
-        # return content
-        
-        # messages = [{"role": "user", "content": prompt}]
         messages = [
             {"role": "system", "content": "You are a precise data extractor. Return only valid JSON."},
             {"role": "user", "content": prompt}
