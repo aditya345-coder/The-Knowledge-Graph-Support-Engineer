@@ -2,19 +2,16 @@ import json
 import os
 from dotenv import load_dotenv
 from datasets import Dataset
-import time # Add this import
+
 from ragas import evaluate
-# from ragas.metrics import faithfulness, answer_relevancy, context_precision
-# from ragas.metrics import Faithfulness, AnswerRelevancy, ContextPrecision
-# from ragas.metrics.collections import Faithfulness, AnswerRelevancy, ContextPrecision
-import litellm
-from ragas.llms import llm_factory
+# Use the correct v0.4.x import path
 from ragas.metrics import Faithfulness, AnswerRelevancy, ContextPrecision
-
-from langchain_community.chat_models import ChatLiteLLM
+from ragas.llms import llm_factory
+from ragas.embeddings import embedding_factory
+from openai import OpenAI # Use the base OpenAI client for the wrapper
 from langchain_community.embeddings import HuggingFaceEmbeddings
-
 from agents.support_agent import SupportAgent
+from ragas.embeddings.base import LangchainEmbeddingsWrapper # Critical import
 
 load_dotenv()
 
@@ -22,82 +19,61 @@ load_dotenv()
 with open("src/evaluation/golden_dataset.json", "r") as f:
     dataset = json.load(f)
 
-# 2. Prepare Agent and Evaluator
+# 2. Prepare Agent
 agent = SupportAgent()
 
-# Setup LiteLLM for Judge LLM
-# evaluator_llm = ChatLiteLLM(
-#     model=os.getenv("LLM_MODEL", "groq/llama-3.1-8b-instant")
-# )
+# 3. Setup NVIDIA NIM judge as a standard OpenAI-compatible client
+# This is required by RAGAS 0.4+ llm_factory
+raw_client = OpenAI(
+    api_key=os.getenv("NVIDIA_API_KEY"),
+    base_url="https://integrate.api.nvidia.com/v1" # Your NIM endpoint
+)
 
+# Use llm_factory to create the RAGAS-compatible LLM
 evaluator_llm = llm_factory(
-    model=os.getenv("LLM_MODEL", "groq/llama-3.1-8b-instant"),
-    provider="litellm",
-    client=litellm.completion
+    model=os.getenv("LLM_MODEL", "meta/llama-3.1-405b-instruct"),
+    provider="openai", 
+    client=raw_client
 )
 
-# Setup local embeddings
-embeddings = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2"
-)
-
-def extract_text(docs):
-    """Deep flatten + convert everything to string"""
-
-    def flatten(item):
-        if isinstance(item, list):
-            result = []
-            for sub in item:
-                result.extend(flatten(sub))  # recursive flatten
-            return result
-        else:
-            if hasattr(item, "page_content"):
-                return [str(item.page_content)]
-            return [str(item)]
-
-    return flatten(docs)
+# 4. Setup local embeddings
+hf_embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+# Wrap the LangChain object for Ragas compatibility
+embeddings = LangchainEmbeddingsWrapper(hf_embeddings)
 
 def run_evaluation():
     results = []
-    print("Running Agent through evaluation dataset...")
+    print("Running Evaluation (v0.4.x)...")
 
     for item in dataset:
         state = agent.app.invoke({"query": item["user_query"]})
-
-        # Ensure we flatten everything into one single list of strings
-        # state['documents'] and state['github_issues'] are already lists of strings
-        # based on your support_agent.py code.
-        time.sleep(2)
+        
+        # Flatten contexts
         flat_contexts = state.get("documents", []) + state.get("github_issues", [])
 
         results.append({
-            "question": item["user_query"],
-            "answer": state.get("response", ""),
-            "retrieved_contexts": flat_contexts,  # Must be List[str]
-            "ground_truth": item["ground_truth"]
+            "user_input": item["user_query"],         # formerly question
+            "response": state.get("response", ""),    # formerly answer
+            "retrieved_contexts": flat_contexts,
+            "reference": item["ground_truth"]         # formerly ground_truth
         })
 
-    # Create dataset
     eval_dataset = Dataset.from_list(results)
 
-    # 3. Compute Metrics
-    print("Computing metrics via RAGAS...")
+    # 5. Compute Metrics (v0.4.x requires initialized metric objects)
+    f = Faithfulness(llm=evaluator_llm)
+    ar = AnswerRelevancy(llm=evaluator_llm, embeddings=embeddings, strictness=1)
+    cp = ContextPrecision(llm=evaluator_llm)
 
-    # Important: Initialize metric classes with ()
-    # 1. Initialize the metrics with your chosen LLM and Embeddings
-    faithfulness = Faithfulness(llm=evaluator_llm)
-    answer_relevancy = AnswerRelevancy(llm=evaluator_llm)
-    context_precision = ContextPrecision(llm=evaluator_llm)
 
-    # 2. Pass the initialized objects to evaluate
+    # 3. Pass the initialized objects to evaluate
     scores = evaluate(
         dataset=eval_dataset,
-        metrics=[faithfulness, answer_relevancy, context_precision], 
-        llm=evaluator_llm,
-        embeddings=embeddings
+        metrics=[f, ar, cp],
+        llm=evaluator_llm,        # Global fallback LLM
+        embeddings=embeddings     # Global fallback Embeddings
     )
-
     print(scores)
-    
+
 if __name__ == "__main__":
     run_evaluation()

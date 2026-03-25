@@ -216,3 +216,4 @@ qdrant_dummy.py
 logs/
 opencode.json
 session-ses_2dfd.md
+neo4j_check.py

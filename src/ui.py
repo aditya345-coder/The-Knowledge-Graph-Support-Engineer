@@ -20,11 +20,12 @@ def format_citations(text: str) -> str:
             issue_id = source.replace("Issue #", "").strip()
             if repo and issue_id.isdigit():
                 url = f"https://github.com/{repo}/issues/{issue_id}"
-                return f"[Source: Issue #{issue_id}]({url})"
-            return f"**[Source: Issue #{issue_id}]**"
-        return f"**[Source: {source}]**"
+                return f"🔗[Source: Issue #{issue_id}]({url})"
+            return f"[Source: Issue #{issue_id}]"
+        return f"📖[Source: {source}]"
 
-    return re.sub(r"\[Source: ([^\]]+)\]", replace_tag, text)
+    # return re.sub(r"\[Source: ([^\]]+)\]", replace_tag, text)
+    return re.sub(r"\[Source: (.*?)\]", replace_tag, text)
 
 
 # Sidebar for "Under the Hood" details
@@ -56,8 +57,11 @@ if user_input:
             response = {"status": "error", "message": f"API connection failed: {exc}"}
 
         if response.get("status") == "success":
+            st.write("DEBUG: Raw LLM Output:", response["answer"]) # <--- ADD THIS
             with st.chat_message("assistant"):
-                st.markdown(format_citations(response["answer"]))
+                # st.markdown(format_citations(response["answer"]))
+                formatted_text = format_citations(response["answer"])
+                st.markdown(formatted_text)
 
             # Show the reasoning in the sidebar
             metadata = response.get("metadata")

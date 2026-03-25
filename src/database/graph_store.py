@@ -31,21 +31,41 @@ class GraphStore:
     def close(self):
         self.driver.close()
 
+    # def get_related_issues(self, neo4j_id: str, limit: int = 5):
+    #     """Finds issues affecting a specific feature."""
+    #     query = """
+    #     MATCH (f:Feature)
+    #     WHERE f.neo4j_id = $neo4j_id OR f.name = $neo4j_id
+    #     MATCH (f)<-[:AFFECTS]-(i:Issue)
+    #     RETURN i.id AS issue_id, i.title AS title LIMIT $limit
+    #     """
+    #     with self.driver.session() as session:
+    #         result = session.run(query, neo4j_id=neo4j_id, limit=limit)
+    #         issues = [
+    #             f"Issue #{record['issue_id']}: {record['title']}" for record in result
+    #         ]
+    #         logger.info(
+    #             "Related issues fetched",
+    #             extra={"feature": neo4j_id, "count": len(issues)},
+    #         )
+    #         return issues
     def get_related_issues(self, neo4j_id: str, limit: int = 5):
-        """Finds issues affecting a specific feature."""
         query = """
         MATCH (f:Feature)
         WHERE f.neo4j_id = $neo4j_id OR f.name = $neo4j_id
         MATCH (f)<-[:AFFECTS]-(i:Issue)
         RETURN i.id AS issue_id, i.title AS title LIMIT $limit
         """
-        with self.driver.session() as session:
-            result = session.run(query, neo4j_id=neo4j_id, limit=limit)
-            issues = [
-                f"Issue #{record['issue_id']}: {record['title']}" for record in result
-            ]
-            logger.info(
-                "Related issues fetched",
-                extra={"feature": neo4j_id, "count": len(issues)},
-            )
-            return issues
+        try:
+            with self.driver.session() as session:
+                result = session.run(query, neo4j_id=neo4j_id, limit=limit)
+                return [f"Issue #{record['issue_id']}: {record['title']}" for record in result]
+        except Exception as e:
+            logger.error(f"Neo4j connection error: {e}")
+            # Try to re-initialize the driver if it's a connection error
+            try:
+                self.driver.verify_connectivity()
+            except:
+                logger.warning("Neo4j connection lost. Attempting to reconnect...")
+                # Add logic here to re-run __init__ if necessary
+            return [] # Return empty list so the Agent doesn't crash
