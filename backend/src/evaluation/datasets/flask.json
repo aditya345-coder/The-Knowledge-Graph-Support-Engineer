@@ -1,0 +1,317 @@
+[
+    {
+        "user_query": "How do I install Flask?",
+        "ground_truth": "Use pip to install Flask into a virtual environment: python -m venv .venv, then source the activate script, then pip install Flask. Flask requires Python 3.10 or newer. Dependencies (Werkzeug, Jinja, MarkupSafe, ItsDangerous, Click, Blinker) are installed automatically.",
+        "expected_feature": "installation",
+        "difficulty": "easy",
+        "category": "setup"
+    },
+    {
+        "user_query": "How do I create a minimal Flask application?",
+        "ground_truth": "Import the Flask class and create an app instance: from flask import Flask; app = Flask(__name__). Use the @app.route decorator to define a URL path and return a string. Save as hello.py (not flask.py) and run with flask --app hello run.",
+        "expected_feature": "minimal app",
+        "difficulty": "easy",
+        "category": "quickstart"
+    },
+    {
+        "user_query": "How do I run the Flask development server?",
+        "ground_truth": "Use the flask command: flask --app hello run. The --app option tells Flask where your application is. If the file is named app.py or wsgi.py, --app is not needed. The server starts on http://127.0.0.1:5000. To run on all interfaces, add --host=0.0.0.0. To use a different port, add --port 8000.",
+        "expected_feature": "development server",
+        "difficulty": "easy",
+        "category": "cli"
+    },
+    {
+        "user_query": "How do I define a route in Flask?",
+        "ground_truth": "Use the @app.route decorator on a view function. The first argument is the URL path: @app.route('/') def index(): return 'Index Page'. You can attach multiple routes to one function by stacking decorators.",
+        "expected_feature": "routing",
+        "difficulty": "easy",
+        "category": "quickstart"
+    },
+    {
+        "user_query": "How do I use variables in Flask URL routes?",
+        "ground_truth": "Add <variable_name> to the route path. The function receives it as a keyword argument. Use converters for type checking: <int:post_id> for integers, <path:subpath> for paths with slashes, <string:name> (default), <float:val>, or <uuid:id>.",
+        "expected_feature": "variable rules",
+        "difficulty": "easy",
+        "category": "quickstart"
+    },
+    {
+        "user_query": "How do I render an HTML template in Flask?",
+        "ground_truth": "Use flask.render_template(). Place templates in a 'templates' folder next to your app module. Example: return render_template('hello.html', person=name). Templates use Jinja2 syntax. Autoescaping is enabled for .html, .htm, .xml, and .xhtml files.",
+        "expected_feature": "templates",
+        "difficulty": "easy",
+        "category": "quickstart"
+    },
+    {
+        "user_query": "How do I access query parameters in a Flask view?",
+        "ground_truth": "Use the request proxy: from flask import request. Access query string parameters with request.args.get('key', '') or request.args['key']. If the key is missing and you use dict access, Flask returns a 400 Bad Request error.",
+        "expected_feature": "request handling",
+        "difficulty": "easy",
+        "category": "quickstart"
+    },
+    {
+        "user_query": "How do I serve static files in Flask?",
+        "ground_truth": "Create a 'static' folder in your application package. Files are served at /static. Generate URLs with url_for('static', filename='style.css'). The file must be stored at static/style.css on the filesystem.",
+        "expected_feature": "static files",
+        "difficulty": "easy",
+        "category": "quickstart"
+    },
+    {
+        "user_query": "What Python version is required for Flask?",
+        "ground_truth": "Flask supports Python 3.10 and newer. The latest version of Python is recommended.",
+        "expected_feature": "installation",
+        "difficulty": "easy",
+        "category": "setup"
+    },
+    {
+        "user_query": "How do I open the Flask interactive shell?",
+        "ground_truth": "Run flask shell from the terminal. It starts an interactive Python shell with the application context pushed automatically, so current_app and g are available. However, request and session are not available without a request context.",
+        "expected_feature": "shell",
+        "difficulty": "easy",
+        "category": "cli"
+    },
+    {
+        "user_query": "How do I handle different HTTP methods in a Flask route?",
+        "ground_truth": "Pass the methods argument to the route decorator: @app.route('/login', methods=['GET', 'POST']). Alternatively, use the shortcut decorators: @app.get('/login'), @app.post('/login'). If GET is present, Flask automatically adds HEAD and OPTIONS support.",
+        "expected_feature": "HTTP methods",
+        "difficulty": "easy",
+        "category": "quickstart"
+    },
+    {
+        "user_query": "How do I enable debug mode in Flask?",
+        "ground_truth": "Use the --debug option: flask --app hello run --debug. This enables the interactive debugger and automatic code reloading. Do not run the debugger in production. The --debug flag can also be placed at the top level: flask --app hello --debug run.",
+        "expected_feature": "debug mode",
+        "difficulty": "easy",
+        "category": "cli"
+    },
+    {
+        "user_query": "How do I access form data submitted via POST?",
+        "ground_truth": "Use request.form, which behaves like a dict: username = request.form['username'] or request.form.get('username'). If the key is missing, Flask returns a 400 Bad Request. The form data is available for POST and PUT requests.",
+        "expected_feature": "form data",
+        "difficulty": "medium",
+        "category": "request handling"
+    },
+    {
+        "user_query": "How do I return a JSON response from a Flask view?",
+        "ground_truth": "Return a dict or list from the view function — Flask automatically converts it to JSON using jsonify. Example: return {'username': user.username, 'theme': user.theme}. For more control, use jsonify() explicitly: return jsonify(key='value').",
+        "expected_feature": "JSON response",
+        "difficulty": "medium",
+        "category": "quickstart"
+    },
+    {
+        "user_query": "How do I redirect a user to a different URL?",
+        "ground_truth": "Use flask.redirect() combined with flask.url_for: return redirect(url_for('login')). To abort with an error code: abort(401). Both are imported from flask.",
+        "expected_feature": "redirects",
+        "difficulty": "medium",
+        "category": "quickstart"
+    },
+    {
+        "user_query": "How do I use sessions in Flask?",
+        "ground_truth": "Sessions store data per user across requests, implemented as signed cookies. Set app.secret_key = b'some random bytes'. Import session from flask. Store: session['username'] = request.form['username']. Read: session['username']. Remove: session.pop('username', None). Generate a secret key with: python -c 'import secrets; print(secrets.token_hex())'.",
+        "expected_feature": "sessions",
+        "difficulty": "medium",
+        "category": "quickstart"
+    },
+    {
+        "user_query": "How do I create custom error pages in Flask?",
+        "ground_truth": "Use the @app.errorhandler(404) decorator on a function that returns (template, status_code). Example: @app.errorhandler(404) def not_found(error): return render_template('404.html'), 404. Note the status code after the render_template call — without it, Flask defaults to 200.",
+        "expected_feature": "error handling",
+        "difficulty": "medium",
+        "category": "error handling"
+    },
+    {
+        "user_query": "How do I create a blueprint in Flask?",
+        "ground_truth": "Import Blueprint from flask: from flask import Blueprint. Create an instance: simple_page = Blueprint('simple_page', __name__, template_folder='templates'). Decorate view functions with @simple_page.route('/'). Register on the app: app.register_blueprint(simple_page).",
+        "expected_feature": "blueprints",
+        "difficulty": "medium",
+        "category": "blueprints"
+    },
+    {
+        "user_query": "How do I mount a blueprint at a URL prefix?",
+        "ground_truth": "Pass url_prefix to register_blueprint: app.register_blueprint(simple_page, url_prefix='/pages'). All routes in the blueprint will then be under /pages/. The generated URL rules will show the prefix in the path.",
+        "expected_feature": "blueprints",
+        "difficulty": "medium",
+        "category": "blueprints"
+    },
+    {
+        "user_query": "How do I use the logger in Flask?",
+        "ground_truth": "Flask provides app.logger, a standard Python logging.Logger. Log messages with app.logger.debug('message'), app.logger.info('message'), app.logger.warning('message'), app.logger.error('message'). Configure logging as early as possible before creating the app object using logging.config.dictConfig.",
+        "expected_feature": "logging",
+        "difficulty": "medium",
+        "category": "configuration"
+    },
+    {
+        "user_query": "How do I add a custom CLI command to my Flask app?",
+        "ground_truth": "Use @app.cli.command('name') with Click decorators: @app.cli.command('create-user') @click.argument('name') def create_user(name): ... For grouped commands, use flask.cli.AppGroup: user_cli = AppGroup('user'); app.cli.add_command(user_cli). Commands are run with: flask create-user admin.",
+        "expected_feature": "CLI commands",
+        "difficulty": "medium",
+        "category": "cli"
+    },
+    {
+        "user_query": "How do I load configuration from a Python file in Flask?",
+        "ground_truth": "Use app.config methods: app.config.from_object('yourapplication.default_settings') loads a module. app.config.from_envvar('YOURAPPLICATION_SETTINGS') loads from a path in an env var. app.config.from_pyfile('config.py') loads a .py file. app.config.from_file('config.toml', load=tomllib.load) loads TOML/JSON files.",
+        "expected_feature": "configuration",
+        "difficulty": "medium",
+        "category": "configuration"
+    },
+    {
+        "user_query": "What is the application context in Flask?",
+        "ground_truth": "The application context keeps track of application-level data during a request or CLI command. Push it with with app.app_context(): to access current_app and g. It prevents circular imports — you access the app via current_app proxy instead of importing it directly.",
+        "expected_feature": "application context",
+        "difficulty": "medium",
+        "category": "application context"
+    },
+    {
+        "user_query": "How do I test my Flask application using the test client?",
+        "ground_truth": "Create a test client: client = app.test_client(). Send requests with client.get('/path'), client.post('/path', data={...}), or client.post('/path', json={...}). The response object has .data (bytes), .text (string), .status_code, .json, and .history (redirect chain). Use client in a with block to access session after request.",
+        "expected_feature": "testing",
+        "difficulty": "medium",
+        "category": "testing"
+    },
+    {
+        "user_query": "How do I handle file uploads in Flask?",
+        "ground_truth": "Access uploaded files via request.files['the_file']. Save with file.save('/path/to/upload'). Use werkzeug.utils.secure_filename to sanitize the filename. The HTML form must have enctype='multipart/form-data'. Use request.files.get('key') to get None instead of 400 on missing files.",
+        "expected_feature": "file uploads",
+        "difficulty": "medium",
+        "category": "request handling"
+    },
+    {
+        "user_query": "How do I read and set cookies in Flask?",
+        "ground_truth": "Read cookies: request.cookies.get('username'). Set cookies: create a response with make_response(), then resp.set_cookie('username', 'the username'), return resp. Cookies are set on response objects. Do not use cookies directly for sensitive data — use Flask sessions instead, which sign cookies cryptographically.",
+        "expected_feature": "cookies",
+        "difficulty": "medium",
+        "category": "request handling"
+    },
+    {
+        "user_query": "How do I flash messages to users in Flask?",
+        "ground_truth": "Import flash from flask. Store a message with flash('message') at the end of a request. Retrieve with get_flashed_messages() in the next request. In templates, use {% for msg in get_flashed_messages() %} to display. Flash messages are typically combined with a layout template.",
+        "expected_feature": "message flashing",
+        "difficulty": "medium",
+        "category": "request handling"
+    },
+    {
+        "user_query": "How do I add WSGI middleware to Flask?",
+        "ground_truth": "Wrap app.wsgi_app instead of app: app.wsgi_app = ProxyFix(app.wsgi_app). This means app still points to your Flask application, not the middleware. You can continue to use and configure app directly. Werkzeug provides middleware like ProxyFix for running behind reverse proxies.",
+        "expected_feature": "WSGI middleware",
+        "difficulty": "medium",
+        "category": "deployment"
+    },
+    {
+        "user_query": "How do I use Flask extensions?",
+        "ground_truth": "Extensions typically follow the pattern: import the extension class, create an instance, call init_app(app). Example: from flask_foo import Foo; foo = Foo(); app = Flask(__name__); foo.init_app(app). Extensions read their configuration from app.config. Install extensions via pip.",
+        "expected_feature": "extensions",
+        "difficulty": "medium",
+        "category": "extensions"
+    },
+    {
+        "user_query": "How do I configure Flask using environment variables?",
+        "ground_truth": "Use app.config.from_prefixed_env() to load environment variables prefixed with FLASK_ (configurable via the prefix argument). Values are parsed as JSON: only 'true' and 'false' (lowercase) are valid booleans. Nested keys use double underscore: FLASK_MYAPI__credentials__username=user123.",
+        "expected_feature": "configuration",
+        "difficulty": "medium",
+        "category": "configuration"
+    },
+    {
+        "user_query": "How do I use MethodView to create a REST API in Flask?",
+        "ground_truth": "Subclass MethodView from flask.views. Define methods matching HTTP verbs: def get(self, id): ... def post(self): ... etc. MethodView automatically sets the allowed methods based on defined methods. Register with app.add_url_rule('/items/<int:id>', view_func=ItemAPI.as_view('item', model)).",
+        "expected_feature": "class-based views",
+        "difficulty": "hard",
+        "category": "views"
+    },
+    {
+        "user_query": "How do I use signals in Flask?",
+        "ground_truth": "Signals use the blinker library. Import built-in signals: from flask import template_rendered, request_started, request_finished. Subscribe with signal.connect(callback, app) and unsubscribe with signal.disconnect(callback, app). Always specify the sender (the app) unless you want all applications. Use **extra in callbacks for future compatibility.",
+        "expected_feature": "signals",
+        "difficulty": "hard",
+        "category": "signals"
+    },
+    {
+        "user_query": "How do I nest blueprints in Flask?",
+        "ground_truth": "Register a blueprint on another blueprint: parent.register_blueprint(child). The child gains the parent's name as prefix (parent.child.endpoint) and the parent's URL prefix as prefix to its own. Child blueprint's before_request functions trigger for the child, and error handlers fall back to parent if child has none.",
+        "expected_feature": "blueprints",
+        "difficulty": "hard",
+        "category": "blueprints"
+    },
+    {
+        "user_query": "How do blueprint error handlers differ from application error handlers?",
+        "ground_truth": "Blueprint error handlers are only invoked from raise or abort in that blueprint's view functions — they are NOT invoked for invalid URL access because the application doesn't know which blueprint should handle a 404. Blueprint handlers take precedence over global handlers when the request is dispatched to that blueprint. For invalid URLs, use application-level error handlers with request.path checks.",
+        "expected_feature": "blueprints",
+        "difficulty": "hard",
+        "category": "blueprints"
+    },
+    {
+        "user_query": "How do I create a custom HTTP exception in Flask?",
+        "ground_truth": "Subclass werkzeug.exceptions.HTTPException with a custom code and description: class InsufficientStorage(werkzeug.exceptions.HTTPException): code = 507; description = 'Not enough storage space.'. Register with app.register_error_handler(InsufficientStorage, handler). Non-standard HTTP codes cannot be registered by code number — use the exception class.",
+        "expected_feature": "error handling",
+        "difficulty": "hard",
+        "category": "error handling"
+    },
+    {
+        "user_query": "How do I return JSON responses for all HTTP errors in Flask?",
+        "ground_truth": "Register a handler for werkzeug.exceptions.HTTPException. Inside, call e.get_response() to get the correct headers and status, then replace the body with JSON: response.data = json.dumps({'code': e.code, 'name': e.name, 'description': e.description}); response.content_type = 'application/json'; return response.",
+        "expected_feature": "error handling",
+        "difficulty": "hard",
+        "category": "error handling"
+    },
+    {
+        "user_query": "How do I add CLI commands to a Flask blueprint?",
+        "ground_truth": "Use @bp.cli.command('name') on the blueprint: @bp.cli.command('create') @click.argument('name') def create(name): ... Register the blueprint with app.register_blueprint(bp). Commands are automatically nested under the blueprint name: flask students create alice. Use cli_group parameter to customize the nesting level, or set cli_group=None to merge into app-level.",
+        "expected_feature": "CLI commands",
+        "difficulty": "hard",
+        "category": "cli"
+    },
+    {
+        "user_query": "How do I apply decorators to class-based views in Flask?",
+        "ground_truth": "Set the View.decorators class attribute to a list of decorators: class UserList(View): decorators = [cache(minutes=2), login_required]. These are applied to the view function returned by as_view(). Alternatively, apply decorators manually: view = UserList.as_view('users'); view = login_required(view); app.add_url_rule('/users/', view_func=view).",
+        "expected_feature": "class-based views",
+        "difficulty": "hard",
+        "category": "views"
+    },
+    {
+        "user_query": "How do I test and modify sessions in Flask tests?",
+        "ground_truth": "Use client in a with block to access session after request: with client: client.post('/login', data={...}); assert session['user_id'] == 1. To modify session before a request: with client.session_transaction() as session: session['user_id'] = 1. The session is saved when the with block exits.",
+        "expected_feature": "testing",
+        "difficulty": "hard",
+        "category": "testing"
+    },
+    {
+        "user_query": "How do I load configuration from TOML or JSON files in Flask?",
+        "ground_truth": "Use app.config.from_file(): import tomllib; app.config.from_file('config.toml', load=tomllib.load, text=False). For JSON: import json; app.config.from_file('config.json', load=json.load). The text parameter indicates whether to open in text mode (default True, set False for binary formats like TOML).",
+        "expected_feature": "configuration",
+        "difficulty": "hard",
+        "category": "configuration"
+    },
+    {
+        "user_query": "What is the weather today?",
+        "ground_truth": "I am sorry, as an AI specialized in this repository, I cannot provide information on: What is the weather today?",
+        "expected_feature": "None",
+        "difficulty": "hard",
+        "category": "out-of-domain"
+    },
+    {
+        "user_query": "Recommend me a good movie",
+        "ground_truth": "I am sorry, as an AI specialized in this repository, I cannot provide information on: Recommend me a good movie",
+        "expected_feature": "None",
+        "difficulty": "hard",
+        "category": "out-of-domain"
+    },
+    {
+        "user_query": "What is the capital of France?",
+        "ground_truth": "I am sorry, as an AI specialized in this repository, I cannot provide information on: What is the capital of France?",
+        "expected_feature": "None",
+        "difficulty": "hard",
+        "category": "out-of-domain"
+    },
+    {
+        "user_query": "Help me with my tax return",
+        "ground_truth": "I am sorry, as an AI specialized in this repository, I cannot provide information on: Help me with my tax return",
+        "expected_feature": "None",
+        "difficulty": "hard",
+        "category": "out-of-domain"
+    },
+    {
+        "user_query": "How do I make a pizza?",
+        "ground_truth": "I am sorry, as an AI specialized in this repository, I cannot provide information on: How do I make a pizza?",
+        "expected_feature": "None",
+        "difficulty": "hard",
+        "category": "out-of-domain"
+    }
+]

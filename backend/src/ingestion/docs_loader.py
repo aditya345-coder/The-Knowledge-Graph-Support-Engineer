@@ -7,13 +7,13 @@ from typing import Callable
 import numpy as np
 from git import Repo
 from git.exc import GitCommandError
-from langchain_text_splitters import MarkdownHeaderTextSplitter
+from langchain_core.documents import Document
+from langchain_text_splitters import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
 from database.graph_store import GraphStore
 from database.vector_store import VectorStore
 from qdrant_client.models import Distance, VectorParams, PointStruct
 from utils.logging_config import setup_logging
 
-from config import RAW_DOCS_DIR
 from settings import settings
 
 logger = setup_logging(__name__)
@@ -34,7 +34,7 @@ class DocsLoader:
         self.local_path = (
             Path(local_path)
             if local_path
-            else (RAW_DOCS_DIR / self._default_repo_dir_name(self.repo_url))
+            else (settings.RAW_DOCS_DIR / self._default_repo_dir_name(self.repo_url))
         )
         self.vector_store = VectorStore()
         self.session_id = session_id
@@ -119,7 +119,7 @@ class DocsLoader:
                         files.extend(walk_contents(sub))
                     except Exception:
                         continue
-                elif item.name.endswith(".md"):
+                elif item.name.endswith((".md", ".rst", ".mdx")):
                     try:
                         content = item.decoded_content.decode("utf-8")
                         files.append({
@@ -145,7 +145,7 @@ class DocsLoader:
             try:
                 contents = repo.get_contents("")
                 for item in ([contents] if not isinstance(contents, list) else contents):
-                    if item.name.endswith(".md") and item.type == "file":
+                    if item.name.endswith((".md", ".rst", ".mdx")) and item.type == "file":
                         content = item.decoded_content.decode("utf-8")
                         md_files.append({
                             "path": item.path,
@@ -220,14 +220,16 @@ class DocsLoader:
                 return str(c), []
 
         include_files: list[str] = []
-        readme = base / "README.md"
-        if readme.is_file():
-            include_files.append(str(readme))
+        for ext in (".md", ".rst", ".mdx"):
+            readme = base / f"README{ext}"
+            if readme.is_file():
+                include_files.append(str(readme))
+                break
 
-        # Fallback: ingest markdown files in repo root.
+        # Fallback: ingest documentation files in repo root.
         try:
             for p in base.iterdir():
-                if p.is_file() and p.name.lower().endswith(".md"):
+                if p.is_file() and p.name.lower().endswith((".md", ".rst", ".mdx")):
                     include_files.append(str(p))
         except Exception:
             pass
@@ -404,7 +406,7 @@ class DocsLoader:
             else:
                 for root, _, files in os.walk(base_dir):
                     for file in files:
-                        if file.endswith(".md"):
+                        if file.endswith((".md", ".rst", ".mdx")):
                             files_to_process.append((os.path.join(root, file), file))
         else:
             raw_files = self.fetch_via_api()
@@ -413,7 +415,7 @@ class DocsLoader:
 
         if len(files_to_process) > settings.REPO_FILE_LIMIT:
             raise ValueError(
-                f"Repository has {len(files_to_process)} markdown files, "
+                f"Repository has {len(files_to_process)} documentation files, "
                 f"which exceeds the limit of {settings.REPO_FILE_LIMIT}."
             )
 
@@ -422,7 +424,7 @@ class DocsLoader:
             "parsing_docs",
             0,
             total_files,
-            f"Parsing markdown files (0/{total_files})",
+            f"Parsing documentation files (0/{total_files})",
         )
 
         # Phase 1: Split all files into chunks (no feature identification yet)
@@ -432,7 +434,7 @@ class DocsLoader:
                 "parsing_docs",
                 i - 1,
                 total_files,
-                f"Parsing markdown files ({i-1}/{total_files})",
+                f"Parsing documentation files ({i-1}/{total_files})",
             )
             if settings.LOCAL_MODE:
                 with open(path, "r", encoding="utf-8") as f:
@@ -440,6 +442,11 @@ class DocsLoader:
             else:
                 content = self._api_contents.get(path, "")
             chunks = splitter.split_text(content)
+            if len(chunks) <= 1 and path.endswith(".rst"):
+                rst_splitter = RecursiveCharacterTextSplitter(
+                    chunk_size=1000, chunk_overlap=200,
+                )
+                chunks = [Document(page_content=t) for t in rst_splitter.split_text(content)]
             for chunk in chunks:
                 chunk_sources.append((label, path))
             all_chunks.extend(chunks)
@@ -447,7 +454,7 @@ class DocsLoader:
                 "parsing_docs",
                 i,
                 total_files,
-                f"Parsing markdown files ({i}/{total_files})",
+                f"Parsing documentation files ({i}/{total_files})",
             )
 
         # Phase 2: Batch feature identification for all chunks at once

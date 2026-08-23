@@ -9,6 +9,7 @@ import { ProgressBar } from "./ProgressBar";
 interface Props {
   sessionId: string;
   onSessionChange: (id: string) => void;
+  onRestoreSession: (id: string) => void;
   onRepoUrlChange: (url: string) => void;
   theme: "light" | "dark";
   onThemeToggle: () => void;
@@ -87,7 +88,7 @@ function generateId(): string {
   return "ui_" + Math.random().toString(36).substring(2, 15);
 }
 
-export function Sidebar({ sessionId, onSessionChange, onRepoUrlChange, theme, onThemeToggle }: Props) {
+export function Sidebar({ sessionId, onSessionChange, onRestoreSession, onRepoUrlChange, theme, onThemeToggle }: Props) {
   const [repoUrl, setRepoUrl] = useState("");
   const [showResumeDialog, setShowResumeDialog] = useState(false);
   const [interruptedSession, setInterruptedSession] = useState<{ completed_phases: string[]; percent?: number } | null>(null);
@@ -141,10 +142,17 @@ export function Sidebar({ sessionId, onSessionChange, onRepoUrlChange, theme, on
       const localList = loadRepoList();
       const localIds = new Set(localList.map((r) => r.sessionId));
       const newRepos = backendRepos.filter((r) => !localIds.has(r.sessionId));
-      if (newRepos.length > 0) {
-        const merged = [...localList, ...newRepos];
-        setRepoList(merged);
-        saveRepoList(merged);
+      const merged = [...localList, ...newRepos];
+      setRepoList(merged);
+      saveRepoList(merged);
+
+      // If current sessionId doesn't match any saved repo,
+      // auto-select the most recent one from the server
+      if (merged.length > 0 && !merged.some((r) => r.sessionId === sessionId)) {
+        const sorted = [...merged].sort(
+          (a, b) => new Date(b.preparedAt).getTime() - new Date(a.preparedAt).getTime(),
+        );
+        onRestoreSession(sorted[0].sessionId);
       }
     }).catch(() => {});
   }, []);
@@ -369,6 +377,23 @@ export function Sidebar({ sessionId, onSessionChange, onRepoUrlChange, theme, on
           {isComplete ? "Ready" : isError ? "Error" : isPreparing ? "Processing" : "Not started"}
         </span>
       </div>
+
+      {isError && status?.data?.message && (
+        <div className="w-full space-y-1">
+          <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+            <div className="bg-red-600 h-2.5 rounded-full" style={{ width: "100%" }} />
+          </div>
+          <div className="text-xs text-red-600 dark:text-red-400">
+            {status.data.message}
+          </div>
+          <button
+            onClick={handleAddNew}
+            className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 cursor-pointer"
+          >
+            Try a different repo
+          </button>
+        </div>
+      )}
     </aside>
   );
 }

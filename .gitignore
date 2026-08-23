@@ -236,3 +236,9 @@ backend/__pycache__/
 docs/
 documentation/
 .opencode/
+venv313/
+
+Explanation/
+session-ses_11c8.md
+interview_resume_points.md
+.agents/

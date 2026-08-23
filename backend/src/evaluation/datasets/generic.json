@@ -1,0 +1,373 @@
+[
+    {
+        "user_query": "How do I install this project?",
+        "ground_truth": "Install the project by cloning the repository and running pip install with the provided requirements or pyproject.toml. Check the README for specific installation instructions.",
+        "expected_feature": "setup",
+        "difficulty": "easy",
+        "category": "setup"
+    },
+    {
+        "user_query": "How do I run the tests?",
+        "ground_truth": "Run pytest from the project root directory. Check pyproject.toml or README for any test configuration or specific test commands.",
+        "expected_feature": "testing",
+        "difficulty": "easy",
+        "category": "contributing"
+    },
+    {
+        "user_query": "How do I set up the development environment?",
+        "ground_truth": "Clone the repository, create a virtual environment, install dependencies from requirements.txt or pyproject.toml, and configure any required environment variables as described in the README.",
+        "expected_feature": "setup",
+        "difficulty": "easy",
+        "category": "setup"
+    },
+    {
+        "user_query": "How do I configure environment variables?",
+        "ground_truth": "Create a .env file in the project root with the required variables. Check .env.example for a template of required environment variables. Never commit .env files to version control.",
+        "expected_feature": "configuration",
+        "difficulty": "easy",
+        "category": "configuration"
+    },
+    {
+        "user_query": "How do I start the development server?",
+        "ground_truth": "Run the appropriate start command for your framework. For Python projects, this is typically uvicorn main:app --reload or python main.py. Check the README for the exact command.",
+        "expected_feature": "server",
+        "difficulty": "easy",
+        "category": "setup"
+    },
+    {
+        "user_query": "What Python version is required?",
+        "ground_truth": "Check the pyproject.toml or .python-version file for the required Python version. Most modern projects require Python 3.10 or higher.",
+        "expected_feature": "setup",
+        "difficulty": "easy",
+        "category": "setup"
+    },
+    {
+        "user_query": "How do I check the API documentation?",
+        "ground_truth": "Start the server and navigate to /docs for Swagger UI or /redoc for ReDoc. These are auto-generated from the code comments and type hints.",
+        "expected_feature": "documentation",
+        "difficulty": "easy",
+        "category": "api"
+    },
+    {
+        "user_query": "How do I create a health check endpoint?",
+        "ground_truth": "Create a simple GET endpoint at /health that returns a JSON response with status ok. Optionally check database connectivity and other dependencies.",
+        "expected_feature": "api",
+        "difficulty": "easy",
+        "category": "api"
+    },
+    {
+        "user_query": "How do I set up CORS?",
+        "ground_truth": "Use the CORSMiddleware from your framework. Configure allowed origins, methods, and headers. For development, you can allow all origins. For production, specify exact origins.",
+        "expected_feature": "configuration",
+        "difficulty": "medium",
+        "category": "configuration"
+    },
+    {
+        "user_query": "How do I add authentication to the API?",
+        "ground_truth": "Implement JWT or OAuth2 authentication. Create a token validation dependency and protect routes by adding it as a dependency. Store secrets securely in environment variables.",
+        "expected_feature": "authentication",
+        "difficulty": "medium",
+        "category": "api"
+    },
+    {
+        "user_query": "How do I handle database migrations?",
+        "ground_truth": "Use a migration tool like Alembic for SQLAlchemy or Django's built-in migrations. Generate migration files, review them, and apply with the appropriate upgrade command.",
+        "expected_feature": "database",
+        "difficulty": "medium",
+        "category": "configuration"
+    },
+    {
+        "user_query": "How do I add logging to the application?",
+        "ground_truth": "Use Python's built-in logging module. Configure the logging level and format at application startup. Log important events, errors, and performance metrics.",
+        "expected_feature": "logging",
+        "difficulty": "medium",
+        "category": "configuration"
+    },
+    {
+        "user_query": "How do I implement rate limiting?",
+        "ground_truth": "Use a middleware or dependency that tracks request counts per client using Redis or in-memory cache. Return 429 Too Many Requests when the limit is exceeded.",
+        "expected_feature": "middleware",
+        "difficulty": "medium",
+        "category": "api"
+    },
+    {
+        "user_query": "How do I handle file uploads?",
+        "ground_truth": "Use the framework's file upload handling. Validate file types and sizes. Store files securely and consider using async file handling for large files.",
+        "expected_feature": "file handling",
+        "difficulty": "medium",
+        "category": "api"
+    },
+    {
+        "user_query": "How do I run the application in production?",
+        "ground_truth": "Use a production WSGI/ASGI server like gunicorn with uvicorn workers. Set appropriate worker counts, configure environment variables, and use a reverse proxy like Nginx.",
+        "expected_feature": "deployment",
+        "difficulty": "medium",
+        "category": "deployment"
+    },
+    {
+        "user_query": "How do I add request validation?",
+        "ground_truth": "Use Pydantic models or framework-specific validation to validate request bodies, query parameters, and path parameters. Return clear error messages for invalid inputs.",
+        "expected_feature": "validation",
+        "difficulty": "medium",
+        "category": "api"
+    },
+    {
+        "user_query": "How do I implement caching?",
+        "ground_truth": "Use Redis or in-memory caching for frequently accessed data. Implement cache invalidation strategies. Consider cache headers for HTTP caching.",
+        "expected_feature": "caching",
+        "difficulty": "medium",
+        "category": "configuration"
+    },
+    {
+        "user_query": "How do I set up CI/CD?",
+        "ground_truth": "Configure GitHub Actions or your preferred CI/CD tool. Set up linting, testing, and deployment pipelines. Use environment secrets for sensitive configuration.",
+        "expected_feature": "ci/cd",
+        "difficulty": "medium",
+        "category": "deployment"
+    },
+    {
+        "user_query": "How do I implement background tasks?",
+        "ground_truth": "Use a task queue like Celery with Redis or RabbitMQ. Define tasks, schedule them, and monitor their execution. Handle retries and failures gracefully.",
+        "expected_feature": "background tasks",
+        "difficulty": "medium",
+        "category": "api"
+    },
+    {
+        "user_query": "How do I add API versioning?",
+        "ground_truth": "Use URL path versioning (e.g., /v1/, /v2/) or header-based versioning. Organize routes by version and maintain backward compatibility.",
+        "expected_feature": "routing",
+        "difficulty": "medium",
+        "category": "api"
+    },
+    {
+        "user_query": "How do I deploy to Docker?",
+        "ground_truth": "Create a Dockerfile with the appropriate base image, copy source code, install dependencies, and set the entrypoint. Build the image and run the container with proper environment variables.",
+        "expected_feature": "deployment",
+        "difficulty": "medium",
+        "category": "deployment"
+    },
+    {
+        "user_query": "How do I handle WebSocket connections?",
+        "ground_truth": "Use the framework's WebSocket support. Accept connections, handle messages, and manage disconnections. Consider authentication and connection pooling.",
+        "expected_feature": "websockets",
+        "difficulty": "hard",
+        "category": "api"
+    },
+    {
+        "user_query": "How do I optimize database queries?",
+        "ground_truth": "Use query optimization techniques like indexing, eager loading, and query analysis. Monitor slow queries and use database-specific optimization tools.",
+        "expected_feature": "database",
+        "difficulty": "hard",
+        "category": "configuration"
+    },
+    {
+        "user_query": "How do I implement GraphQL?",
+        "ground_truth": "Use a GraphQL library like Strawberry or graphene. Define your schema, resolvers, and mutations. Integrate with your existing data layer and authentication.",
+        "expected_feature": "graphql",
+        "difficulty": "hard",
+        "category": "api"
+    },
+    {
+        "user_query": "How do I set up microservices?",
+        "ground_truth": "Decompose your application into independent services. Use message queues for communication, implement service discovery, and consider API gateways for routing.",
+        "expected_feature": "architecture",
+        "difficulty": "hard",
+        "category": "deployment"
+    },
+    {
+        "user_query": "How do I implement horizontal scaling?",
+        "ground_truth": "Use load balancers, session sharing with Redis, and stateless design. Configure auto-scaling policies and monitor resource usage.",
+        "expected_feature": "deployment",
+        "difficulty": "hard",
+        "category": "deployment"
+    },
+    {
+        "user_query": "How do I handle circular imports?",
+        "ground_truth": "Restructure code to avoid circular dependencies. Use dependency injection, move shared code to a separate module, or use lazy imports.",
+        "expected_feature": "debugging",
+        "difficulty": "hard",
+        "category": "bug"
+    },
+    {
+        "user_query": "How do I debug memory leaks?",
+        "ground_truth": "Use profiling tools like memory_profiler or objgraph. Track object references, identify growing allocations, and fix reference cycles.",
+        "expected_feature": "debugging",
+        "difficulty": "hard",
+        "category": "bug"
+    },
+    {
+        "user_query": "How do I implement custom middleware?",
+        "ground_truth": "Create middleware classes with __init__ and __call__ methods. Process requests before they reach route handlers and modify responses. Register middleware in the application setup.",
+        "expected_feature": "middleware",
+        "difficulty": "hard",
+        "category": "api"
+    },
+    {
+        "user_query": "How do I set up distributed tracing?",
+        "ground_truth": "Implement OpenTelemetry or Jaeger for distributed tracing. Instrument your code to create spans, propagate trace context, and export traces to a collector.",
+        "expected_feature": "monitoring",
+        "difficulty": "hard",
+        "category": "configuration"
+    },
+    {
+        "user_query": "How do I implement event-driven architecture?",
+        "ground_truth": "Use message brokers like Kafka or RabbitMQ. Define events, publishers, and subscribers. Handle event ordering and idempotency.",
+        "expected_feature": "architecture",
+        "difficulty": "hard",
+        "category": "architecture"
+    },
+    {
+        "user_query": "What is the weather today?",
+        "ground_truth": "I am sorry, as an AI specialized in this repository, I cannot provide information on: What is the weather today?",
+        "expected_feature": "None",
+        "difficulty": "hard",
+        "category": "out-of-domain"
+    },
+    {
+        "user_query": "Recommend me a good movie",
+        "ground_truth": "I am sorry, as an AI specialized in this repository, I cannot provide information on: Recommend me a good movie",
+        "expected_feature": "None",
+        "difficulty": "hard",
+        "category": "out-of-domain"
+    },
+    {
+        "user_query": "What is the capital of France?",
+        "ground_truth": "I am sorry, as an AI specialized in this repository, I cannot provide information on: What is the capital of France?",
+        "expected_feature": "None",
+        "difficulty": "hard",
+        "category": "out-of-domain"
+    },
+    {
+        "user_query": "Help me with my tax return",
+        "ground_truth": "I am sorry, as an AI specialized in this repository, I cannot provide information on: Help me with my tax return",
+        "expected_feature": "None",
+        "difficulty": "hard",
+        "category": "out-of-domain"
+    },
+    {
+        "user_query": "How do I set it up?",
+        "ground_truth": "To set up the project, clone the repository, install dependencies, and configure environment variables. Check the README for detailed setup instructions.",
+        "expected_feature": "setup",
+        "difficulty": "medium",
+        "category": "setup"
+    },
+    {
+        "user_query": "It's not working",
+        "ground_truth": "Please provide more details about the issue. Check the logs for error messages, verify your environment variables are set correctly, and ensure all dependencies are installed.",
+        "expected_feature": "debugging",
+        "difficulty": "medium",
+        "category": "bug"
+    },
+    {
+        "user_query": "How do I contribute to this project?",
+        "ground_truth": "Fork the repository, create a feature branch, make your changes, write tests, and submit a pull request. Follow the code style and contribution guidelines in CONTRIBUTING.md.",
+        "expected_feature": "contributing",
+        "difficulty": "easy",
+        "category": "contributing"
+    },
+    {
+        "user_query": "How do I report a bug?",
+        "ground_truth": "Open an issue on GitHub with a clear description, steps to reproduce, expected behavior, and actual behavior. Include relevant logs and environment details.",
+        "expected_feature": "contributing",
+        "difficulty": "easy",
+        "category": "contributing"
+    },
+    {
+        "user_query": "How do I use the REST API?",
+        "ground_truth": "Make HTTP requests to the API endpoints using tools like curl, Postman, or your application. Include proper headers and authentication tokens as required.",
+        "expected_feature": "api",
+        "difficulty": "easy",
+        "category": "api"
+    },
+    {
+        "user_query": "How do I configure the database connection?",
+        "ground_truth": "Set the database URL in your environment variables. The application reads DATABASE_URL or similar variables to connect. Ensure the database server is running and accessible.",
+        "expected_feature": "configuration",
+        "difficulty": "medium",
+        "category": "configuration"
+    },
+    {
+        "user_query": "How do I implement error handling?",
+        "ground_truth": "Use try/except blocks for exception handling. Create custom exception classes for application-specific errors. Return appropriate HTTP status codes and error messages.",
+        "expected_feature": "error handling",
+        "difficulty": "medium",
+        "category": "api"
+    },
+    {
+        "user_query": "How do I set up monitoring?",
+        "ground_truth": "Implement health check endpoints, use Prometheus for metrics collection, set up Grafana dashboards, and configure alerting for critical issues.",
+        "expected_feature": "monitoring",
+        "difficulty": "hard",
+        "category": "configuration"
+    },
+    {
+        "user_query": "How do I migrate from version 1 to version 2?",
+        "ground_truth": "Review the migration guide in the documentation. Update deprecated APIs, adjust configuration settings, and run any provided migration scripts. Test thoroughly before deploying.",
+        "expected_feature": "migration",
+        "difficulty": "hard",
+        "category": "configuration"
+    },
+    {
+        "user_query": "What known issues or bugs exist in this project?",
+        "ground_truth": "Check the GitHub issues page for open and recently closed issues. Common categories include bugs, feature requests, and documentation improvements.",
+        "expected_feature": "bug tracking",
+        "difficulty": "easy",
+        "category": "contributing"
+    },
+    {
+        "user_query": "Are there any reported issues with authentication?",
+        "ground_truth": "Search the GitHub issue tracker for authentication-related issues. Common problems include token expiration, CORS errors with auth headers, and OAuth configuration.",
+        "expected_feature": "bug tracking",
+        "difficulty": "medium",
+        "category": "bug"
+    },
+    {
+        "user_query": "Have there been any performance-related bug reports?",
+        "ground_truth": "Check the issue tracker for performance-related reports. Common performance issues include slow database queries, memory leaks, and inefficient API endpoints.",
+        "expected_feature": "bug tracking",
+        "difficulty": "medium",
+        "category": "bug"
+    },
+    {
+        "user_query": "Where is the main entry point of this project?",
+        "ground_truth": "The main entry point is defined in the project's main module (e.g., main.py or app.py). It initializes the application, configures middleware, and starts the server.",
+        "expected_feature": "code structure",
+        "difficulty": "easy",
+        "category": "architecture"
+    },
+    {
+        "user_query": "What functions are exported from the main module?",
+        "ground_truth": "The main module exports the application instance and any top-level route handlers or middleware. Check the module's public API for available functions and classes.",
+        "expected_feature": "code structure",
+        "difficulty": "medium",
+        "category": "api"
+    },
+    {
+        "user_query": "How is error handling implemented in the codebase?",
+        "ground_truth": "Error handling is implemented using exception classes and middleware. The codebase defines custom exception types and uses try/except blocks with appropriate HTTP status code responses.",
+        "expected_feature": "error handling",
+        "difficulty": "medium",
+        "category": "architecture"
+    },
+    {
+        "user_query": "How do I deploy with authentication and rate limiting?",
+        "ground_truth": "Deploy with a production ASGI server, configure JWT or OAuth2 authentication, implement rate limiting middleware using Redis, and secure your endpoints with appropriate dependencies.",
+        "expected_feature": "deployment",
+        "difficulty": "hard",
+        "category": "deployment"
+    },
+    {
+        "user_query": "How do I add caching and logging to my API endpoints?",
+        "ground_truth": "Implement caching using Redis or in-memory cache for frequently accessed data. Add logging with Python's logging module to track requests, errors, and cache hit/miss rates.",
+        "expected_feature": "configuration",
+        "difficulty": "hard",
+        "category": "api"
+    },
+    {
+        "user_query": "How do I set up CI/CD with database migrations and testing?",
+        "ground_truth": "Configure CI/CD pipeline to run tests, apply database migrations using Alembic, and deploy on success. Store migration scripts in version control and run them as a pre-deploy step.",
+        "expected_feature": "ci/cd",
+        "difficulty": "hard",
+        "category": "deployment"
+    }
+]

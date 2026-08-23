@@ -8,7 +8,7 @@ import { useTheme } from "./hooks/useTheme";
 import { useWebSearch } from "./hooks/useWebSearch";
 
 function AppContent() {
-  const { sessionId, setSessionId } = useSession();
+  const { sessionId, setSessionId, restoreSession } = useSession();
   const [repoUrl, setRepoUrl] = useState<string>();
   const { theme, toggle: toggleTheme } = useTheme();
   const { enabled: webSearchEnabled, toggle: toggleWebSearch } = useWebSearch();
@@ -18,6 +18,7 @@ function AppContent() {
       <Sidebar
         sessionId={sessionId}
         onSessionChange={setSessionId}
+        onRestoreSession={restoreSession}
         onRepoUrlChange={setRepoUrl}
         theme={theme}
         onThemeToggle={toggleTheme}

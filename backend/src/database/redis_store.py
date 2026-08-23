@@ -498,6 +498,32 @@ class RedisStore:
             self._last_error_time = time.monotonic()
             return []
 
+    def save_repo_list_sync(self, user_id: str, repos: list[dict]) -> None:
+        """Synchronous version of save_repo_list for use in background threads."""
+        if not self._check_available():
+            return
+        try:
+            client = self._get_sync_client()
+            key = f"repo_list:{user_id}"
+            client.set(key, json.dumps(repos), ex=2592000)
+        except (redis.ConnectionError, redis.TimeoutError, ValueError) as e:
+            logger.warning("Redis unavailable for save_repo_list_sync: %s", e)
+            self._last_error_time = time.monotonic()
+
+    def get_repo_list_sync(self, user_id: str) -> list[dict]:
+        """Synchronous version of get_repo_list for use in background threads."""
+        if not self._check_available():
+            return []
+        try:
+            client = self._get_sync_client()
+            key = f"repo_list:{user_id}"
+            data = client.get(key)
+            return json.loads(data) if data else []
+        except (redis.ConnectionError, redis.TimeoutError, ValueError) as e:
+            logger.warning("Redis unavailable for get_repo_list_sync: %s", e)
+            self._last_error_time = time.monotonic()
+            return []
+
 
 # ── Module-level singleton ───────────────────────────────────────────
 

@@ -6,7 +6,6 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
-load_dotenv(Path(__file__).resolve().parent.parent / ".env.local")
 
 
 class Settings:
@@ -73,6 +72,10 @@ class Settings:
     GITHUB_TOKEN: str | None = os.getenv("GITHUB_TOKEN")
     TARGET_REPO: str | None = os.getenv("TARGET_REPO")
     TAVILY_API_KEY: str | None = os.getenv("TAVILY_API_KEY")
+
+    # ── Evaluation ─────────────────────────────────────────────────
+    EVAL_SESSION_ID: str = os.getenv("EVAL_SESSION_ID", "eval-v1")
+    EVAL_REPO_URL: str | None = os.getenv("TARGET_REPO")
 
     # ── Paths ───────────────────────────────────────────────────
     PROJECT_ROOT: Path = Path(__file__).resolve().parent.parent

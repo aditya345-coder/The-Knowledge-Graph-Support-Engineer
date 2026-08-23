@@ -16,7 +16,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from typing import Any, Callable, cast
 
-from config import RAW_DOCS_DIR
+from urllib.parse import urlparse
 
 from database.redis_store import get_redis_store
 from middleware.rate_limit import check_rate_limit, decrement_rate_limit
@@ -39,9 +39,10 @@ async def lifespan(app: FastAPI):
         repo_url = session.get("repo_url", "")
         github_token = session.get("github_token") or settings.GITHUB_TOKEN
         completed = session.get("completed_phases", [])
+        user_sub = session.get("user_sub", "anonymous")
         # Run in thread pool since _prepare_repo_task is sync
         loop = asyncio.get_event_loop()
-        loop.run_in_executor(None, _prepare_repo_task, repo_url, github_token, sid, completed)
+        loop.run_in_executor(None, _prepare_repo_task, repo_url, github_token, sid, completed, user_sub)
 
     # Start periodic orphan cleanup (every hour)
     async def _periodic_cleanup():
@@ -381,6 +382,7 @@ def _index_code_chunks(
 def _prepare_repo_task(
     repo_url: str, github_token: str | None, session_id: str,
     completed_phases: list[str] | None = None,
+    user_sub: str = "anonymous",
 ) -> None:
     """Prepare repository for a session. Supports resume via completed_phases."""
     # Validate session_id to prevent path traversal
@@ -457,7 +459,7 @@ def _prepare_repo_task(
         # ── Phase 1: Clone (skip if completed) ──────────────────────
         if "cloning" not in completed_phases:
             report("cloning", 0, 1, f"Preparing local repo for {repo_url}")
-            local_path = str(RAW_DOCS_DIR / session_id)
+            local_path = str(settings.RAW_DOCS_DIR / session_id)
 
             docs_loader = DocsLoader(
                 repo_url=repo_url,
@@ -471,7 +473,7 @@ def _prepare_repo_task(
             redis_store.mark_phase_complete_sync(session_id, "cloning")
         else:
             # Re-initialize docs_loader for subsequent phases
-            local_path = str(RAW_DOCS_DIR / session_id)
+            local_path = str(settings.RAW_DOCS_DIR / session_id)
             docs_loader = DocsLoader(
                 repo_url=repo_url,
                 github_token=github_token,
@@ -509,7 +511,7 @@ def _prepare_repo_task(
             report("indexing_code", 0, 1, "Indexing Python source code")
             code_indexer = CodeIndexer()
 
-            repo_root = Path(str(RAW_DOCS_DIR / session_id))
+            repo_root = Path(str(settings.RAW_DOCS_DIR / session_id))
             src_root = repo_root
             for candidate in [repo_root / "src", repo_root / "lib", repo_root]:
                 if candidate.is_dir():
@@ -556,9 +558,30 @@ def _prepare_repo_task(
                     raise
 
         _update_session(session_id, "complete", "Repository prepared", percent=100)
+
+        # Auto-save to user's repo list so it survives browser switches
+        try:
+            parsed = urlparse(repo_url)
+            repo_path = parsed.path.strip("/")
+            repo_name = repo_path.removesuffix(".git")
+            entry = {
+                "sessionId": session_id,
+                "repoUrl": repo_url,
+                "name": repo_name,
+                "preparedAt": datetime.utcnow().isoformat(),
+            }
+            current_list = redis_store.get_repo_list_sync(user_sub) or []
+            existing = [r for r in current_list if r.get("sessionId") != session_id]
+            updated = existing + [entry]
+            redis_store.save_repo_list_sync(user_sub, updated)
+        except Exception as e:
+            logger.warning("Failed to auto-save repo list: %s", e)
     except Exception as e:
         logger.exception("Repo preparation failed", extra={"session_id": session_id, "error_type": type(e).__name__})
-        _update_session(session_id, "error", "Repository preparation failed", percent=100)
+        error_msg = str(e) or "Repository preparation failed"
+        if len(error_msg) > 300:
+            error_msg = error_msg[:297] + "..."
+        _update_session(session_id, "error", error_msg, percent=100)
     finally:
         _release_session_lock(session_id)
 
@@ -567,6 +590,7 @@ def _prepare_repo_task(
 async def prepare_repo(
     request: PrepareRepoRequest,
     background_tasks: BackgroundTasks,
+    user: dict = Depends(get_current_user),
     x_session_id: str | None = Header(default=None, alias="X-Session-Id"),
 ):
     session_id = x_session_id or request.session_id
@@ -576,6 +600,8 @@ async def prepare_repo(
     if not session_id:
         logger.warning("Invalid session_id format in header", extra={"session_id": x_session_id[:50] if x_session_id else None})
         raise HTTPException(status_code=400, detail="Invalid session_id format")
+
+    user_sub = user.get("sub", "anonymous")
 
     # Check for existing session
     existing = await redis_store.get_session(session_id)
@@ -593,8 +619,9 @@ async def prepare_repo(
         "stage": "running",
         "completed_phases": [],
         "created_at": datetime.now().isoformat(),
+        "user_sub": user_sub,
     })
-    background_tasks.add_task(_prepare_repo_task, request.repo_url, request.github_token, session_id)
+    background_tasks.add_task(_prepare_repo_task, request.repo_url, request.github_token, session_id, None, user_sub)
     return {"status": "processing", "metadata": {"session_id": session_id}}
 
 
@@ -669,7 +696,7 @@ async def _cleanup_session_data(session_id: str) -> None:
         logger.warning("Neo4j cleanup failed: %s", e)
 
     # 4. Delete cloned repo from disk
-    repo_path = settings.RAW_DOCS_DIR / session_id
+    repo_path = settings.settings.RAW_DOCS_DIR / session_id
     if repo_path.exists():
         shutil.rmtree(repo_path, ignore_errors=True)
 
@@ -678,6 +705,7 @@ async def _cleanup_session_data(session_id: str) -> None:
 async def resume_repo(
     request: ResumeRepoRequest,
     background_tasks: BackgroundTasks,
+    user: dict = Depends(get_current_user),
     x_session_id: str | None = Header(default=None, alias="X-Session-Id"),
 ):
     session_id = x_session_id or request.session_id
@@ -701,7 +729,8 @@ async def resume_repo(
     repo_url = session.get("repo_url", "")
     github_token = session.get("github_token") or settings.GITHUB_TOKEN
     completed = session.get("completed_phases", [])
-    background_tasks.add_task(_prepare_repo_task, repo_url, github_token, session_id, completed)
+    user_sub = user.get("sub", "anonymous")
+    background_tasks.add_task(_prepare_repo_task, repo_url, github_token, session_id, completed, user_sub)
     return {"status": "resuming", "completed_phases": completed}
 
 
@@ -709,6 +738,7 @@ async def resume_repo(
 async def fresh_repo(
     request: PrepareRepoRequest,
     background_tasks: BackgroundTasks,
+    user: dict = Depends(get_current_user),
     x_session_id: str | None = Header(default=None, alias="X-Session-Id"),
 ):
     session_id = x_session_id or request.session_id
@@ -717,6 +747,8 @@ async def fresh_repo(
     session_id = validate_session_id(session_id)
     if not session_id:
         raise HTTPException(status_code=400, detail="Invalid session_id format")
+
+    user_sub = user.get("sub", "anonymous")
 
     # Clean up old session data
     await _cleanup_session_data(session_id)
@@ -727,8 +759,9 @@ async def fresh_repo(
         "stage": "running",
         "completed_phases": [],
         "created_at": datetime.now().isoformat(),
+        "user_sub": user_sub,
     })
-    background_tasks.add_task(_prepare_repo_task, request.repo_url, request.github_token, session_id)
+    background_tasks.add_task(_prepare_repo_task, request.repo_url, request.github_token, session_id, None, user_sub)
     return {"status": "processing", "metadata": {"session_id": session_id}}
 
 
@@ -793,7 +826,7 @@ async def _cleanup_orphaned_sessions() -> int:
                     current_agent.retriever.graph_store.cleanup_session(sid)
                 except Exception as e:
                     logger.warning("Failed to clean orphaned Neo4j data for %s: %s", sid, e)
-                repo_path = settings.RAW_DOCS_DIR / sid
+                repo_path = settings.settings.RAW_DOCS_DIR / sid
                 if repo_path.exists():
                     shutil.rmtree(repo_path, ignore_errors=True)
                 cleaned += 1

@@ -20,5 +20,12 @@ export function useSession() {
     setSessionIdState(id);
   };
 
-  return { sessionId, setSessionId };
+  const restoreSession = (id: string) => {
+    if (id && id !== sessionId) {
+      localStorage.setItem("session_id", id);
+      setSessionIdState(id);
+    }
+  };
+
+  return { sessionId, setSessionId, restoreSession };
 }
